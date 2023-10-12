@@ -1,0 +1,114 @@
+import random
+import math
+
+class PenguinAgent:
+    def __init__(self, position, trail, fitness):
+        self.position = position # A list of numbers representing the coordinates in the search space
+        self.trail = trail # A list of positions that the agent has visited
+        self.fitness = fitness # A number representing the quality of the position
+
+    def huddle(self, agents):
+        # Find the nearest group of agents based on distance and fitness
+        group = []
+        for agent in agents:
+            distance = math.sqrt(sum((self.position[i] - agent.position[i]) ** 2 for i in range(len(self.position))))
+            fitness_difference = abs(self.fitness - agent.fitness)
+            if distance < 0.5 and fitness_difference < 0.1: # These are arbitrary thresholds that can be changed
+                group.append(agent)
+
+        # Move towards the best agent in the group
+        if group:
+            best_agent = max(group, key=lambda x: x.fitness)
+            self.position = [(self.position[i] + (best_agent.position[i] - self.position[i]) * 0.1) for i in range(len(self.position))]
+
+    def forage(self, agents):
+        # Choose a random foraging strategy
+        strategy = random.choice(["diving", "following", "exploring"])
+
+        # Diving: Move to a deeper position in the search space
+        if strategy == "diving":
+            self.position = [(self.position[i] + random.uniform(-0.5, 0.5)) for i in range(len(self.position))]
+
+        # Following: Move towards the best agent in the population
+        elif strategy == "following":
+            best_agent = max(agents, key=lambda x: x.fitness)
+            self.position = [(self.position[i] + (best_agent.position[i] - self.position[i]) * 0.1) for i in range(len(self.position))]
+
+        # Exploring: Move to a random position in the search space
+        else:
+            self.position = [random.random() for i in range(len(self.position))]
+
+    def breed(self, agents):
+        # Choose a random mate from the group
+        group = []
+        for agent in agents:
+            distance = math.sqrt(sum((self.position[i] - agent.position[i]) ** 2 for i in range(len(self.position))))
+            fitness_difference = abs(self.fitness - agent.fitness)
+            if distance < 0.5 and fitness_difference < 0.1: # These are arbitrary thresholds that can be changed
+                group.append(agent)
+
+        if group:
+            mate = random.choice(group)
+
+            # Exchange positions or pebbles
+            exchange_type = random.choice(["position", "pebble"])
+
+            # Position: Swap positions with the mate
+            if exchange_type == "position":
+                self.position, mate.position = mate.position, self.position
+
+            # Pebble: Swap one coordinate with the mate
+            else:
+                index = random.randint(0, len(self.position) - 1)
+                self.position[index], mate.position[index] = mate.position[index], self.position[index]
+
+    def update_trail(self, agents):
+        # Update the trail based on the quality of the solution and the pheromone level
+        best_fitness = max(agents, key=lambda x: x.fitness).fitness
+        pheromone_level = 1 - (self.fitness / best_fitness) # Higher fitness means lower pheromone level
+        if random.random() < pheromone_level: # Probabilistic update of the trail
+            self.trail.append(self.position)
+
+class PenguinSwarmAlgorithm:
+    def __init__(self, agents, iterations):
+        self.agents = agents # A list of PenguinAgent objects
+        self.iterations = iterations # A number representing the maximum number of iterations
+
+    def run(self):
+        for i in range(self.iterations):
+            for agent in self.agents:
+                agent.huddle(self.agents)
+                agent.forage(self.agents)
+                agent.breed(self.agents)
+                agent.update_trail(self.agents)
+
+    def get_best_solution(self):
+        # Find the agent with the best fitness
+        best_agent = max(self.agents, key=lambda x: x.fitness)
+
+        return best_agent.trail
+
+# Evaluate the fitness of a position
+def evaluate_fitness(position):
+    # Implement your own fitness function here
+    # For example, a simple sphere function
+    fitness = -sum(x ** 2 for x in position)
+
+    return fitness
+
+# Create a population of penguin agents
+agents = []
+for i in range(100):
+    agents.append(PenguinAgent([random.random() for i in range(2)], [], evaluate_fitness([random.random() for i in range(2)])))
+
+# Create a penguin swarm algorithm
+algorithm = PenguinSwarmAlgorithm(agents, 1000)
+
+# Run the algorithm
+algorithm.run()
+
+# Get the best solution
+best_trail = algorithm.get_best_solution()
+
+# Print the best solution
+print(best_trail)
